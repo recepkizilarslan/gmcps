@@ -1,0 +1,2 @@
+# gmcps
+Greenbone MCP Server
