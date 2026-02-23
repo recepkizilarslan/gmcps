@@ -1,4 +1,5 @@
-# OpenVAS MCP Server
+# GMCPS aka OpenVAS MCP Server
+[![ci](https://github.com/recepkizilarslan/gmcps/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/recepkizilarslan/gmcps/actions/workflows/ci.yml) [![codeql](https://github.com/recepkizilarslan/gmcps/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/recepkizilarslan/gmcps/actions/workflows/codeql.yml) [![Dependabot Updates](https://github.com/recepkizilarslan/gmcps/actions/workflows/dependabot/dependabot-updates/badge.svg?branch=main)](https://github.com/recepkizilarslan/gmcps/actions/workflows/dependabot/dependabot-updates) [![dependency-review](https://github.com/recepkizilarslan/gmcps/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/recepkizilarslan/gmcps/actions/workflows/dependency-review.yml) [![release](https://github.com/recepkizilarslan/gmcps/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/recepkizilarslan/gmcps/actions/workflows/release.yml)
 
 A production-grade Model Context Protocol (MCP) server in C# that integrates with Greenbone/OpenVAS (GVM) and enables LLM/agent queries about vulnerability management.
 
