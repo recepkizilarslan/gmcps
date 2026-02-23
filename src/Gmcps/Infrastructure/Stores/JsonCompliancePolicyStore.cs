@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Gmcps.Configuration;
 using Gmcps.Domain;
-using Gmcps.Domain.Configuration;
 using Gmcps.Domain.Interfaces;
-using Gmcps.Domain.Models;
+using Gmcps.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 

@@ -1,5 +1,5 @@
+using Gmcps.Infrastructure.Security;
 using Gmcps.Inputs;
-using Gmcps.Validation;
 
 namespace Gmcps.Tests;
 

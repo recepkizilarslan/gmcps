@@ -1,11 +1,10 @@
 using System.Net.Sockets;
 using System.Text;
 using System.Xml.Linq;
+using Gmcps.Configuration;
 using Gmcps.Domain;
-using Gmcps.Domain.Configuration;
 using Gmcps.Domain.Interfaces;
-using Gmcps.Domain.Models;
-using Microsoft.Extensions.Logging;
+using Gmcps.Models;
 using Microsoft.Extensions.Options;
 
 namespace Gmcps.Infrastructure.Gmp;
@@ -14,21 +13,20 @@ namespace Gmcps.Infrastructure.Gmp;
 /// GMP client that connects directly to gvmd's Unix domain socket.
 /// Used when the MCP server runs in a container that shares the gvmd socket volume.
 /// </summary>
-public sealed class GmpUnixSocketClient : IGmpClient, IDisposable
+public sealed class GmpUnixSocketClient(IOptions<GvmOptions> options, ILogger<GmpUnixSocketClient> logger)
+    : IGmpClient, IDisposable
 {
-    private readonly GvmOptions _options;
-    private readonly ILogger<GmpUnixSocketClient> _logger;
+    private readonly GvmOptions _options = options.Value;
+    
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
+    
     private Socket? _socket;
+    
     private NetworkStream? _stream;
+    
     private bool _authenticated;
+    
     private const int MaxResponseBytes = 4 * 1024 * 1024;
-
-    public GmpUnixSocketClient(IOptions<GvmOptions> options, ILogger<GmpUnixSocketClient> logger)
-    {
-        _options = options.Value;
-        _logger = logger;
-    }
 
     private async Task EnsureConnectedAsync(CancellationToken ct)
     {
@@ -36,6 +34,8 @@ public sealed class GmpUnixSocketClient : IGmpClient, IDisposable
         {
             return;
         }
+
+        logger.LogDebug("Establishing GMP socket connection to {SocketPath}", _options.SocketPath);
 
         _stream?.Dispose();
         _socket?.Dispose();
@@ -55,13 +55,16 @@ public sealed class GmpUnixSocketClient : IGmpClient, IDisposable
         }
 
         _authenticated = true;
-        _logger.LogInformation("Connected and authenticated to GVM via Unix socket {SocketPath}", _options.SocketPath);
+        logger.LogInformation("Connected and authenticated to GVM via Unix socket {SocketPath}", _options.SocketPath);
     }
 
     private async Task<Result<XDocument>> SendCommandAsync(string command, CancellationToken ct)
     {
+        var commandName = ExtractCommandName(command);
+
         try
         {
+            logger.LogDebug("Sending GMP command {CommandName}", commandName);
             var bytes = Encoding.UTF8.GetBytes(command);
             await _stream!.WriteAsync(bytes, ct);
             await _stream.FlushAsync(ct);
@@ -73,18 +76,21 @@ public sealed class GmpUnixSocketClient : IGmpClient, IDisposable
             if (status is not null && !status.StartsWith("2"))
             {
                 var statusText = doc.Root?.Attribute("status_text")?.Value ?? "Unknown error";
+                logger.LogWarning("GMP command {CommandName} returned error status {Status}: {StatusText}", commandName, status, statusText);
                 return Result<XDocument>.Failure($"GMP error {status}: {statusText}");
             }
 
+            logger.LogDebug("GMP command {CommandName} completed successfully", commandName);
             return Result<XDocument>.Success(doc);
         }
         catch (OperationCanceledException)
         {
+            logger.LogWarning("GMP command {CommandName} was canceled", commandName);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GMP command failed");
+            logger.LogError(ex, "GMP command {CommandName} failed", commandName);
             _authenticated = false;
             return Result<XDocument>.Failure($"GMP communication error: {ex.Message}");
         }
@@ -247,8 +253,35 @@ public sealed class GmpUnixSocketClient : IGmpClient, IDisposable
              .Replace("\"", "&quot;")
              .Replace("'", "&apos;");
 
+    private static string ExtractCommandName(string xml)
+    {
+        var openTagStart = xml.IndexOf('<');
+        if (openTagStart < 0 || openTagStart + 1 >= xml.Length)
+        {
+            return "unknown";
+        }
+
+        var start = openTagStart + 1;
+        if (xml[start] == '/')
+        {
+            start++;
+        }
+
+        var end = start;
+        while (end < xml.Length &&
+               xml[end] != '>' &&
+               xml[end] != '/' &&
+               !char.IsWhiteSpace(xml[end]))
+        {
+            end++;
+        }
+
+        return end > start ? xml[start..end] : "unknown";
+    }
+
     public void Dispose()
     {
+        logger.LogDebug("Disposing GMP socket client resources");
         _stream?.Dispose();
         _socket?.Dispose();
         _connectionLock.Dispose();

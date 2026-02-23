@@ -1,6 +1,6 @@
-using Gmcps.Domain.Configuration;
-using Gmcps.Domain.Models;
+using Gmcps.Configuration;
 using Gmcps.Infrastructure.Stores;
+using Gmcps.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 

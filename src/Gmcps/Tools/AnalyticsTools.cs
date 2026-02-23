@@ -1,43 +1,59 @@
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using Gmcps.Inputs;
-using Gmcps.Validation;
 using Gmcps.Domain.Interfaces;
-using Gmcps.Domain.Models;
+using Gmcps.Infrastructure.Security;
+using Gmcps.Models;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 
 namespace Gmcps.Tools;
 
 [McpServerToolType]
 public sealed class AnalyticsTools(
-    IRateLimiter rateLimiter,
     IGmpClient gmpClient,
     ITargetMetadataStore metadataStore,
-    ICompliancePolicyStore policyStore)
-    : ToolBase(rateLimiter)
+    ICompliancePolicyStore policyStore,
+    ILogger<AnalyticsTools> logger)
+    : ToolBase
 {
+    private readonly ILogger<AnalyticsTools> _logger = logger;
+
     [McpServerTool(Name = "gvm_get_targets_status"), Description("Get status of targets filtered by OS (e.g., 'all Windows machines')")]
     public async Task<string> GetTargetsStatus(GetTargetsStatusInput input, CancellationToken ct)
     {
-        var rateLimit = AcquireRateLimit();
-        if (rateLimit.IsFailure)
-        {
-            return ErrorJson(rateLimit.Error);
-        }
+        const string toolName = "gvm_get_targets_status";
+        _logger.LogInformation(
+            "Executing tool {ToolName} (osFilter: {OsFilter}, includeTasks: {IncludeTasks}, includeLastReportSummary: {IncludeLastReportSummary})",
+            toolName,
+            input.Os,
+            input.IncludeTasks,
+            input.IncludeLastReportSummary);
 
         var targetsResult = await gmpClient.GetTargetsAsync(ct);
 
         if (targetsResult.IsFailure)
         {
+            _logger.LogWarning("Tool {ToolName} failed: {Error}", toolName, targetsResult.Error);
             return ErrorJson(targetsResult.Error);
         }
+        _logger.LogDebug("Fetched {TargetCount} targets for tool {ToolName}", targetsResult.Value.Count, toolName);
 
         var allMetadata = await metadataStore.GetAllAsync(ct);
         var metadataMap = allMetadata.IsSuccess
             ? allMetadata.Value.ToDictionary(m => m.TargetId)
             : new Dictionary<string, TargetMetadata>();
+        if (allMetadata.IsFailure)
+        {
+            _logger.LogWarning("Metadata lookup failed in {ToolName}; continuing without metadata: {Error}", toolName, allMetadata.Error);
+        }
 
         var tasksResult = input.IncludeTasks ? await gmpClient.GetTasksAsync(ct) : null;
+        if (input.IncludeTasks && tasksResult is { IsFailure: true })
+        {
+            _logger.LogWarning("Task list retrieval failed in {ToolName}; continuing without task data: {Error}", toolName, tasksResult.Error);
+        }
+
         var tasksByTarget = tasksResult?.IsSuccess == true
             ? tasksResult.Value.GroupBy(t => t.TargetId).ToDictionary(g => g.Key, g => g.OrderByDescending(t => t.LastReportId).First())
             : new Dictionary<string, GvmTask>();
@@ -87,6 +103,7 @@ public sealed class AnalyticsTools(
             targets.Add(entry);
         }
 
+        _logger.LogInformation("Tool {ToolName} completed successfully with {ResultCount} targets", toolName, targets.Count);
         return ToJson(new { targets });
     }
 
@@ -94,25 +111,33 @@ public sealed class AnalyticsTools(
      Description("List targets by criticality (e.g., 'which targets are critical?')")]
     public async Task<string> ListCriticalTargets(ListCriticalTargetsInput input, CancellationToken ct)
     {
-        var rateLimit = AcquireRateLimit();
-        if (rateLimit.IsFailure)
-        {
-            return ErrorJson(rateLimit.Error);
-        }
+        const string toolName = "gvm_list_critical_targets";
+        _logger.LogInformation("Executing tool {ToolName} (sortBy: {SortBy})", toolName, input.SortBy);
 
         var targetsResult = await gmpClient.GetTargetsAsync(ct);
 
         if (targetsResult.IsFailure)
         {
+            _logger.LogWarning("Tool {ToolName} failed: {Error}", toolName, targetsResult.Error);
             return ErrorJson(targetsResult.Error);
         }
+        _logger.LogDebug("Fetched {TargetCount} targets for tool {ToolName}", targetsResult.Value.Count, toolName);
 
         var allMetadata = await metadataStore.GetAllAsync(ct);
         var metadataMap = allMetadata.IsSuccess
             ? allMetadata.Value.ToDictionary(m => m.TargetId)
             : new Dictionary<string, TargetMetadata>();
+        if (allMetadata.IsFailure)
+        {
+            _logger.LogWarning("Metadata lookup failed in {ToolName}; continuing without metadata: {Error}", toolName, allMetadata.Error);
+        }
 
         var tasksResult = await gmpClient.GetTasksAsync(ct);
+        if (tasksResult.IsFailure)
+        {
+            _logger.LogWarning("Task list retrieval failed in {ToolName}; continuing without task data: {Error}", toolName, tasksResult.Error);
+        }
+
         var tasksByTarget = tasksResult.IsSuccess
             ? tasksResult.Value.GroupBy(t => t.TargetId).ToDictionary(g => g.Key, g => g.OrderByDescending(t => t.LastReportId).First())
             : new Dictionary<string, GvmTask>();
@@ -161,33 +186,47 @@ public sealed class AnalyticsTools(
             results = results.OrderBy(r => ((dynamic)r).name).ToList();  
         }
         
+        _logger.LogInformation("Tool {ToolName} completed successfully with {ResultCount} targets", toolName, results.Count);
         return ToJson(new { targets = results });
     }
 
     [McpServerTool(Name = "gvm_list_critical_vulnerabilities"), Description("List critical vulnerabilities across targets (e.g., 'give me critical vulns')")]
     public async Task<string> ListCriticalVulnerabilities(ListCriticalVulnerabilitiesInput input, CancellationToken ct)
     {
-        var rateLimit = AcquireRateLimit();
-        if (rateLimit.IsFailure)
-        {
-            return ErrorJson(rateLimit.Error);
-        }
+        const string toolName = "gvm_list_critical_vulnerabilities";
+        _logger.LogInformation(
+            "Executing tool {ToolName} (minSeverity: {MinSeverity}, limit: {Limit})",
+            toolName,
+            input.MinSeverity,
+            input.Limit);
 
         var targetsResult = await gmpClient.GetTargetsAsync(ct);
 
         if (targetsResult.IsFailure)
         {
+            _logger.LogWarning("Tool {ToolName} failed: {Error}", toolName, targetsResult.Error);
             return ErrorJson(targetsResult.Error);
         }
+        _logger.LogDebug("Fetched {TargetCount} targets for tool {ToolName}", targetsResult.Value.Count, toolName);
 
         var allMetadata = await metadataStore.GetAllAsync(ct);
         var metadataMap = allMetadata.IsSuccess
             ? allMetadata.Value.ToDictionary(m => m.TargetId)
             : new Dictionary<string, TargetMetadata>();
+        if (allMetadata.IsFailure)
+        {
+            _logger.LogWarning("Metadata lookup failed in {ToolName}; continuing without metadata: {Error}", toolName, allMetadata.Error);
+        }
         
         var scopeTargets = FilterTargetsByScope(targetsResult.Value, metadataMap, input.Scope);
+        _logger.LogDebug("Scope reduced targets to {ScopedTargetCount} in tool {ToolName}", scopeTargets.Count, toolName);
 
         var tasksResult = await gmpClient.GetTasksAsync(ct);
+        if (tasksResult.IsFailure)
+        {
+            _logger.LogWarning("Task list retrieval failed in {ToolName}; continuing with empty task set: {Error}", toolName, tasksResult.Error);
+        }
+
         var tasksByTarget = tasksResult.IsSuccess
             ? tasksResult.Value.GroupBy(t => t.TargetId).ToDictionary(g => g.Key, g => g.ToList())
             : new Dictionary<string, List<GvmTask>>();
@@ -214,6 +253,14 @@ public sealed class AnalyticsTools(
                 {
                     allFindings.AddRange(findings.Value); 
                 }
+                else
+                {
+                    _logger.LogDebug(
+                        "Skipping report findings in {ToolName}; reportId {ReportId} failed: {Error}",
+                        toolName,
+                        task.LastReportId,
+                        findings.Error);
+                }
             }
         }
         
@@ -235,22 +282,29 @@ public sealed class AnalyticsTools(
             .Take(input.Limit)
             .ToList();
 
+        _logger.LogInformation(
+            "Tool {ToolName} completed successfully with {ResultCount} grouped findings from {RawFindingCount} raw findings",
+            toolName,
+            grouped.Count,
+            allFindings.Count);
         return ToJson(new { findings = grouped });
     }
 
     [McpServerTool(Name = "gvm_is_target_compliant"), Description("Check if a target is compliant with a policy")]
     public async Task<string> IsTargetCompliant(IsTargetCompliantInput input, CancellationToken ct)
     {
-        var rateLimit = AcquireRateLimit();
-        if (rateLimit.IsFailure)
-        {
-            return ErrorJson(rateLimit.Error);
-        }
+        const string toolName = "gvm_is_target_compliant";
+        _logger.LogInformation(
+            "Executing tool {ToolName} (targetId: {TargetId}, policyId: {PolicyId})",
+            toolName,
+            input.TargetId,
+            input.PolicyId);
 
         var validation = InputValidator.Validate(input);
 
         if (validation.IsFailure)
         {
+            _logger.LogWarning("Tool {ToolName} failed: {Error}", toolName, validation.Error);
             return ErrorJson(validation.Error);
         }
 
@@ -258,6 +312,7 @@ public sealed class AnalyticsTools(
 
         if (policyResult.IsFailure)
         {
+            _logger.LogWarning("Tool {ToolName} failed: {Error}", toolName, policyResult.Error);
             return ErrorJson(policyResult.Error);
         }
 
@@ -267,6 +322,7 @@ public sealed class AnalyticsTools(
 
         if (tasksResult.IsFailure)
         {
+            _logger.LogWarning("Tool {ToolName} failed: {Error}", toolName, tasksResult.Error);
             return ErrorJson(tasksResult.Error);
         }
 
@@ -277,6 +333,7 @@ public sealed class AnalyticsTools(
 
         if (targetTask?.LastReportId is null)
         {
+            _logger.LogInformation("Tool {ToolName} completed with no scan data for target {TargetId}", toolName, input.TargetId);
             return ToJson(new
             {
                 targetId = input.TargetId,
@@ -291,6 +348,7 @@ public sealed class AnalyticsTools(
 
         if (findingsResult.IsFailure)
         {
+            _logger.LogWarning("Tool {ToolName} failed: {Error}", toolName, findingsResult.Error);
             return ErrorJson(findingsResult.Error);
         }
 
@@ -340,6 +398,13 @@ public sealed class AnalyticsTools(
             });
         }
 
+        _logger.LogInformation(
+            "Tool {ToolName} completed (targetId: {TargetId}, policyId: {PolicyId}, compliant: {Compliant}, evidenceCount: {EvidenceCount})",
+            toolName,
+            input.TargetId,
+            input.PolicyId,
+            allPassed,
+            evidence.Count);
         return ToJson(new
         {
             targetId = input.TargetId,
@@ -353,28 +418,42 @@ public sealed class AnalyticsTools(
     [McpServerTool(Name = "gvm_list_critical_packages"), Description("List critical packages from scan data (best-effort extraction)")]
     public async Task<string> ListCriticalPackages(ListCriticalPackagesInput input, CancellationToken ct)
     {
-        var rateLimit = AcquireRateLimit();
-        if (rateLimit.IsFailure)
-        {
-            return ErrorJson(rateLimit.Error);
-        }
+        const string toolName = "gvm_list_critical_packages";
+        _logger.LogInformation(
+            "Executing tool {ToolName} (osFilter: {OsFilter}, minSeverity: {MinSeverity}, limit: {Limit})",
+            toolName,
+            input.Os,
+            input.MinSeverity,
+            input.Limit);
 
         var targetsResult = await gmpClient.GetTargetsAsync(ct);
 
         if (targetsResult.IsFailure)
         {
+            _logger.LogWarning("Tool {ToolName} failed: {Error}", toolName, targetsResult.Error);
             return ErrorJson(targetsResult.Error);
         }
+        _logger.LogDebug("Fetched {TargetCount} targets for tool {ToolName}", targetsResult.Value.Count, toolName);
 
         var allMetadata = await metadataStore.GetAllAsync(ct);
         var metadataMap = allMetadata.IsSuccess
             ? allMetadata.Value.ToDictionary(m => m.TargetId)
             : new Dictionary<string, TargetMetadata>();
+        if (allMetadata.IsFailure)
+        {
+            _logger.LogWarning("Metadata lookup failed in {ToolName}; continuing without metadata: {Error}", toolName, allMetadata.Error);
+        }
 
         var scope = new VulnScopeInput(){ Os = input.Os };
         var scopeTargets = FilterTargetsByScope(targetsResult.Value, metadataMap, scope);
+        _logger.LogDebug("Scope reduced targets to {ScopedTargetCount} in tool {ToolName}", scopeTargets.Count, toolName);
 
         var tasksResult = await gmpClient.GetTasksAsync(ct);
+        if (tasksResult.IsFailure)
+        {
+            _logger.LogWarning("Task list retrieval failed in {ToolName}; continuing with empty task set: {Error}", toolName, tasksResult.Error);
+        }
+
         var tasksByTarget = tasksResult.IsSuccess
             ? tasksResult.Value.GroupBy(t => t.TargetId).ToDictionary(g => g.Key, g => g.ToList())
             : new Dictionary<string, List<GvmTask>>();
@@ -399,6 +478,11 @@ public sealed class AnalyticsTools(
 
                 if (findings.IsFailure)
                 {
+                    _logger.LogDebug(
+                        "Skipping report findings in {ToolName}; reportId {ReportId} failed: {Error}",
+                        toolName,
+                        task.LastReportId,
+                        findings.Error);
                     continue;
                 }
 
@@ -416,6 +500,7 @@ public sealed class AnalyticsTools(
 
         if (packageFindings.Count == 0)
         {
+            _logger.LogInformation("Tool {ToolName} completed with no package evidence", toolName);
             return ToJson(new
             {
                 packages = Array.Empty<object>(),
@@ -443,6 +528,11 @@ public sealed class AnalyticsTools(
             .Take(input.Limit)
             .ToList();
 
+        _logger.LogInformation(
+            "Tool {ToolName} completed successfully with {PackageCount} packages from {EvidenceCount} package findings",
+            toolName,
+            grouped.Count,
+            packageFindings.Count);
         return ToJson(new { packages = grouped, support = "bestEffort" });
     }
 

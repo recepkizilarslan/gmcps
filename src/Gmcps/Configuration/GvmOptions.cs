@@ -1,4 +1,4 @@
-namespace Gmcps.Domain.Configuration;
+namespace Gmcps.Configuration;
 
 public sealed class GvmOptions
 {
@@ -9,6 +9,8 @@ public sealed class GvmOptions
 
     // Common settings
     public string Username { get; set; } = "admin";
+    
     public string Password { get; set; } = "admin";
+   
     public int TimeoutSeconds { get; set; } = 30;
 }

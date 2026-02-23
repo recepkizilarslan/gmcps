@@ -1,4 +1,4 @@
-namespace Gmcps.Domain.Interfaces;
+namespace Gmcps.Infrastructure.Security.Core;
 
 public interface IRateLimiter
 {

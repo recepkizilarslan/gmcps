@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Xml.Linq;
 using Gmcps.Domain;
-using Gmcps.Domain.Models;
+using Gmcps.Models;
 
 namespace Gmcps.Infrastructure.Gmp;
 

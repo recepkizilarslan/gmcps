@@ -1,4 +1,4 @@
-using Gmcps.Domain.Models;
+using Gmcps.Models;
 
 namespace Gmcps.Tests;
 

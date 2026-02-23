@@ -1,4 +1,4 @@
-namespace Gmcps.Domain.Models;
+namespace Gmcps.Models;
 
 public sealed record GvmTask(
     string Id,

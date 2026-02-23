@@ -1,36 +1,38 @@
 using System.ComponentModel;
 using Gmcps.Inputs;
-using Gmcps.Validation;
 using Gmcps.Domain.Interfaces;
-using Gmcps.Domain.Models;
+using Gmcps.Infrastructure.Security;
+using Gmcps.Models;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 
 namespace Gmcps.Tools;
 
 [McpServerToolType]
 public sealed class MetadataTools(
-    IRateLimiter rateLimiter,
-    ITargetMetadataStore metadataStore)
-    : ToolBase(rateLimiter)
+    ITargetMetadataStore metadataStore,
+    ILogger<MetadataTools> logger)
+    : ToolBase
 {
+    private readonly ILogger<MetadataTools> _logger = logger;
+
     [McpServerTool(Name = "gvm_set_target_metadata"), Description("Set target metadata (OS, criticality, tags)")]
     public async Task<string> SetTargetMetadata(SetTargetMetadataInput input, CancellationToken ct)
     {
-        var rateLimit = AcquireRateLimit();
-        if (rateLimit.IsFailure)
-        {
-            return ErrorJson(rateLimit.Error);
-        }
+        const string toolName = "gvm_set_target_metadata";
+        _logger.LogInformation("Executing tool {ToolName} for target {TargetId}", toolName, input.TargetId);
 
         var validation = InputValidator.Validate(input);
         if (validation.IsFailure)
         {
+            _logger.LogWarning("Validation failed for tool {ToolName}: {Error}", toolName, validation.Error);
             return ErrorJson(validation.Error);
         }
 
         var idValidation = InputValidator.ValidateId(input.TargetId, "targetId");
         if (idValidation.IsFailure)
         {
+            _logger.LogWarning("TargetId validation failed for tool {ToolName}: {Error}", toolName, idValidation.Error);
             return ErrorJson(idValidation.Error);
         }
 
@@ -42,33 +44,43 @@ public sealed class MetadataTools(
             CompliancePolicies: []);
 
         var result = await metadataStore.SetAsync(metadata, ct);
-        return result.IsSuccess ? ToJson(new { ok = true }) : ErrorJson(result.Error);
+        if (result.IsFailure)
+        {
+            _logger.LogWarning("Metadata store write failed for target {TargetId}: {Error}", input.TargetId, result.Error);
+            return ErrorJson(result.Error);
+        }
+
+        _logger.LogInformation("Tool {ToolName} completed for target {TargetId}", toolName, input.TargetId);
+        return ToJson(new { ok = true });
     }
 
     [McpServerTool(Name = "gvm_get_target_metadata"), Description("Get target metadata (OS, criticality, tags)")]
     public async Task<string> GetTargetMetadata(GetTargetMetadataInput input, CancellationToken ct)
     {
-        var rateLimit = AcquireRateLimit();
-        if (rateLimit.IsFailure)
-        {
-            return ErrorJson(rateLimit.Error);
-        }
+        const string toolName = "gvm_get_target_metadata";
+        _logger.LogInformation("Executing tool {ToolName} for target {TargetId}", toolName, input.TargetId);
 
         var idValidation = InputValidator.ValidateId(input.TargetId, "targetId");
         if (idValidation.IsFailure)
         {
+            _logger.LogWarning("TargetId validation failed for tool {ToolName}: {Error}", toolName, idValidation.Error);
             return ErrorJson(idValidation.Error);
         }
 
         var result = await metadataStore.GetAsync(input.TargetId, ct);
-        return result.IsSuccess
-            ? ToJson(new
+        if (result.IsFailure)
+        {
+            _logger.LogWarning("Metadata lookup failed for target {TargetId}: {Error}", input.TargetId, result.Error);
+            return ErrorJson(result.Error);
+        }
+
+        _logger.LogInformation("Tool {ToolName} completed for target {TargetId}", toolName, input.TargetId);
+        return ToJson(new
             {
                 targetId = result.Value.TargetId,
                 os = result.Value.Os.ToString(),
                 criticality = result.Value.Criticality.ToString(),
                 tags = result.Value.Tags
-            })
-            : ErrorJson(result.Error);
+            });
     }
 }

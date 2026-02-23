@@ -1,7 +1,7 @@
+using Gmcps.Configuration;
 using Gmcps.Domain;
-using Gmcps.Domain.Configuration;
 using Gmcps.Domain.Interfaces;
-using Gmcps.Domain.Models;
+using Gmcps.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,6 +27,7 @@ public sealed class SqliteTargetMetadataStore : ITargetMetadataStore, IDisposabl
 
         _connection = new SqliteConnection($"Data Source={path}");
         _connection.Open();
+        _logger.LogInformation("Opened metadata database at {DatabasePath}", path);
     }
 
     private async Task EnsureInitializedAsync(CancellationToken ct)
@@ -48,10 +49,12 @@ public sealed class SqliteTargetMetadataStore : ITargetMetadataStore, IDisposabl
             """;
         await cmd.ExecuteNonQueryAsync(ct);
         _initialized = true;
+        _logger.LogInformation("Metadata database schema initialized");
     }
 
     public async Task<Result<TargetMetadata>> GetAsync(string targetId, CancellationToken ct)
     {
+        _logger.LogDebug("Loading metadata for target {TargetId}", targetId);
         await EnsureInitializedAsync(ct);
 
         await using var cmd = _connection.CreateCommand();
@@ -61,9 +64,11 @@ public sealed class SqliteTargetMetadataStore : ITargetMetadataStore, IDisposabl
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         if (!await reader.ReadAsync(ct))
         {
+            _logger.LogWarning("Metadata not found for target {TargetId}", targetId);
             return Result<TargetMetadata>.Failure($"Metadata not found for target {targetId}");
         }
 
+        _logger.LogDebug("Loaded metadata for target {TargetId}", targetId);
         return Result<TargetMetadata>.Success(ReadMetadata(reader));
     }
 
@@ -89,6 +94,7 @@ public sealed class SqliteTargetMetadataStore : ITargetMetadataStore, IDisposabl
 
     public async Task<Result<IReadOnlyList<TargetMetadata>>> GetAllAsync(CancellationToken ct)
     {
+        _logger.LogDebug("Loading all target metadata records");
         await EnsureInitializedAsync(ct);
 
         await using var cmd = _connection.CreateCommand();
@@ -101,6 +107,7 @@ public sealed class SqliteTargetMetadataStore : ITargetMetadataStore, IDisposabl
             results.Add(ReadMetadata(reader));
         }
 
+        _logger.LogDebug("Loaded {Count} metadata records", results.Count);
         return Result<IReadOnlyList<TargetMetadata>>.Success(results);
     }
 
