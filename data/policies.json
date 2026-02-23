@@ -1,0 +1,48 @@
+[
+  {
+    "policyId": "no-critical-vulns",
+    "name": "No Critical Vulnerabilities",
+    "rules": [
+      {
+        "checkId": "max-sev-check",
+        "title": "No findings above severity 7.0",
+        "ruleType": "maxSeverity",
+        "maxSeverityThreshold": 7.0,
+        "requiredNvtOid": null
+      }
+    ]
+  },
+  {
+    "policyId": "strict-compliance",
+    "name": "Strict Compliance (No High/Critical)",
+    "rules": [
+      {
+        "checkId": "max-sev-strict",
+        "title": "No findings above severity 4.0",
+        "ruleType": "maxSeverity",
+        "maxSeverityThreshold": 4.0,
+        "requiredNvtOid": null
+      }
+    ]
+  },
+  {
+    "policyId": "ssh-hardening",
+    "name": "SSH Hardening Verified",
+    "rules": [
+      {
+        "checkId": "ssh-check-present",
+        "title": "SSH hardening scan executed",
+        "ruleType": "requiredCheck",
+        "maxSeverityThreshold": null,
+        "requiredNvtOid": "1.3.6.1.4.1.25623.1.0.150220"
+      },
+      {
+        "checkId": "max-sev-low",
+        "title": "No findings above severity 5.0",
+        "ruleType": "maxSeverity",
+        "maxSeverityThreshold": 5.0,
+        "requiredNvtOid": null
+      }
+    ]
+  }
+]
