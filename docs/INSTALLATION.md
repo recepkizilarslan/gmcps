@@ -1,31 +1,29 @@
 # Installation Guide
 
-Run GMCPS with Docker Compose and connect an MCP client over SSE.
+GMCPS is distributed as a Docker image.
+
+- Registry image: `ghcr.io/recepkizilarslan/gmcps`
+- Default tag: `latest`
+- Package page: <https://github.com/recepkizilarslan/gmcps/pkgs/container/gmcps>
 
 ## 1. Prerequisites
 
 - Docker
-- Docker Compose
 - Greenbone/GVM stack (local or remote)
 
-Repository `docker-compose.yml` starts `gvmd`, `postgres`, `ospd-openvas`, and `mcp-server` together.
-
-## 2. Build and Start
-
-From repository root:
+## 2. Install and Run (Docker CLI)
 
 ```bash
-docker build -t gmcps:latest .
-docker compose up -d --build
+docker pull ghcr.io/recepkizilarslan/gmcps:latest
+
+docker run -d --name gmcps --restart unless-stopped --pull always \
+  -p 127.0.0.1:8090:8080 \
+  -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
+  -e GVM_USERNAME=admin \
+  -e GVM_PASSWORD=admin \
+  -v /run/gvmd:/run/gvmd \
+  ghcr.io/recepkizilarslan/gmcps:latest
 ```
-
-Check status:
-
-```bash
-docker compose ps
-```
-
-Expected: `mcp-server` running and `127.0.0.1:8090->8080/tcp` exposed.
 
 ## 3. Verify SSE Endpoint
 
@@ -64,51 +62,76 @@ Use this SSE URL in the MCP client:
 | `GVM_PASSWORD` | `admin` | gvmd password |
 | `ASPNETCORE_URLS` | `http://+:8080` | server bind address |
 
-## 6. Troubleshooting
+## 6. Update and Version Strategy
 
-### 6.1 Socket Connection Error
+Follow latest channel:
+
+```bash
+docker pull ghcr.io/recepkizilarslan/gmcps:latest
+docker rm -f gmcps
+docker run -d --name gmcps --restart unless-stopped --pull always \
+  -p 127.0.0.1:8090:8080 \
+  -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
+  -e GVM_USERNAME=admin \
+  -e GVM_PASSWORD=admin \
+  -v /run/gvmd:/run/gvmd \
+  ghcr.io/recepkizilarslan/gmcps:latest
+```
+
+Pin a specific version:
+
+```bash
+docker pull ghcr.io/recepkizilarslan/gmcps:1.2.3
+docker rm -f gmcps
+docker run -d --name gmcps --restart unless-stopped \
+  -p 127.0.0.1:8090:8080 \
+  -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
+  -e GVM_USERNAME=admin \
+  -e GVM_PASSWORD=admin \
+  -v /run/gvmd:/run/gvmd \
+  ghcr.io/recepkizilarslan/gmcps:1.2.3
+```
+
+Recommended practice: use `latest` in non-critical environments and pin semver tags in production.
+
+## 7. Troubleshooting
+
+### 7.1 Socket Connection Error
 
 Symptom: tool calls fail with `GMP communication error`.
 
 Check socket:
 
 ```bash
-docker compose exec gvmd ls -l /run/gvmd/gvmd.sock
+ls -l /run/gvmd/gvmd.sock
 ```
 
 Check logs:
 
 ```bash
-docker compose logs --tail 200 gvmd
-docker compose logs --tail 200 mcp-server
+docker logs --tail 200 gmcps
 ```
 
-### 6.2 Authentication Error
+### 7.2 Authentication Error
 
 Symptom: `GMP authentication failed`.
 
-Reset password:
+Reset the gvmd admin password in your GVM environment and align `GVM_PASSWORD` in GMCPS container env.
 
-```bash
-docker compose exec -u gvmd gvmd gvmd --user=admin --new-password=admin
-```
-
-Then align `GVM_PASSWORD` in compose/env.
-
-### 6.3 MCP Tools Not Visible
+### 7.3 MCP Tools Not Visible
 
 - Confirm URL `http://127.0.0.1:8090/sse`
-- Confirm `mcp-server` is running
+- Confirm container `gmcps` is running
 - Restart MCP client
 
-## 7. Shutdown
+## 8. Shutdown
 
 ```bash
-docker compose down
+docker rm -f gmcps
 ```
 
-Remove volumes:
+If you need a clean image refresh:
 
 ```bash
-docker compose down -v
+docker image rm ghcr.io/recepkizilarslan/gmcps:latest
 ```
