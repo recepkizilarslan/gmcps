@@ -13,7 +13,7 @@ Production-grade Model Context Protocol (MCP) server in C# for Greenbone/OpenVAS
 
 - Docker
 - .NET 9 SDK (only for local development)
-- Running Greenbone/GVM stack (local or remote)
+- Running Greenbone Community Containers (or equivalent gvmd socket exposure)
 
 For detailed setup and troubleshooting, see [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
@@ -21,7 +21,7 @@ For detailed setup and troubleshooting, see [docs/INSTALLATION.md](docs/INSTALLA
 
 Image: `ghcr.io/recepkizilarslan/gmcps:latest`
 
-Pull and run:
+Use with Greenbone Community Containers (default project name: `greenbone-community-edition`):
 
 ```bash
 docker pull ghcr.io/recepkizilarslan/gmcps:latest
@@ -30,7 +30,7 @@ docker run -d --name gmcps --restart unless-stopped --pull always \
   -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
   -e GVM_USERNAME=admin \
   -e GVM_PASSWORD=admin \
-  -v /run/gvmd:/run/gvmd \
+  --mount type=volume,src=greenbone-community-edition_gvmd_socket_vol,dst=/run/gvmd \
   ghcr.io/recepkizilarslan/gmcps:latest
 ```
 
