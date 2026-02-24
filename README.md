@@ -170,5 +170,3 @@ dotnet run --project src/Gmcps
 ```bash
 dotnet test
 ```
-
-Current status: `53` unit tests passing.
