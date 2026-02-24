@@ -18,8 +18,6 @@ on:
 
 env:
   DOTNET_VERSION: "9.0.x"
-  PROJECT_PATH: "src/Gmcps/Gmcps.csproj"
-  PUBLISH_DIR: "artifacts/publish"
 
 jobs:
   release:
@@ -51,13 +49,11 @@ jobs:
 
           VERSION_NO_V="${RELEASE_VERSION#v}"
           MAJOR_MINOR="$(echo "${VERSION_NO_V}" | cut -d. -f1,2)"
-          ARCHIVE_NAME="gmcps-${RELEASE_VERSION}-linux-x64.tar.gz"
 
           {
             echo "release_version=${RELEASE_VERSION}"
             echo "version_no_v=${VERSION_NO_V}"
             echo "major_minor=${MAJOR_MINOR}"
-            echo "archive_name=${ARCHIVE_NAME}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Setup .NET
@@ -74,21 +70,6 @@ jobs:
       - name: Test
         run: dotnet test Gmcps.slnx --configuration Release --no-build --verbosity normal
 
-      - name: Publish app
-        run: |
-          dotnet publish "${PROJECT_PATH}" \
-            --configuration Release \
-            --runtime linux-x64 \
-            --self-contained false \
-            --output "${PUBLISH_DIR}"
-
-      - name: Package release artifact
-        run: |
-          mkdir -p artifacts
-          ARCHIVE_NAME="${{ steps.release_meta.outputs.archive_name }}"
-          tar -czf "artifacts/${ARCHIVE_NAME}" -C "${PUBLISH_DIR}" .
-          sha256sum "artifacts/${ARCHIVE_NAME}" > "artifacts/${ARCHIVE_NAME}.sha256"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -96,9 +77,6 @@ jobs:
           name: ${{ steps.release_meta.outputs.release_version }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
-          files: |
-            artifacts/${{ steps.release_meta.outputs.archive_name }}
-            artifacts/${{ steps.release_meta.outputs.archive_name }}.sha256
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
