@@ -1,4 +1,3 @@
-using Gmcps.Domain.Models;
 
 namespace Gmcps.Tests;
 
@@ -19,7 +18,7 @@ public class RiskScoreTests
         Assert.Equal(expectedScore, score);
     }
 
-    // Mirror the calculation from AnalyticsTools
+    // Mirror the calculation from ListCriticalTargetsTool
     private static double ComputeRiskScore(ReportSummary summary) =>
         summary.High * 10.0 + summary.Medium * 3.0 + summary.Low * 1.0;
 }

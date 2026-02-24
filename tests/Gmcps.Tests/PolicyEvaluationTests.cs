@@ -1,9 +1,3 @@
-using System.Text.Json;
-using Gmcps.Domain.Configuration;
-using Gmcps.Domain.Models;
-using Gmcps.Infrastructure.Stores;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 
 namespace Gmcps.Tests;
 
@@ -89,7 +83,7 @@ public class PolicyEvaluationTests : IDisposable
         Assert.False(allPassed);
     }
 
-    // Mirror logic from AnalyticsTools.IsTargetCompliant
+    // Mirror logic from IsTargetCompliantTool
     private static bool EvaluatePolicy(CompliancePolicy policy, List<Finding> findings)
     {
         foreach (var rule in policy.Rules)

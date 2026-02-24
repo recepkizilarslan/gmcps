@@ -1,0 +1,47 @@
+
+namespace Gmcps.Domain.Scans.Notes.Inputs;
+
+public sealed class ModifyNoteInput
+{
+    [Required]
+    [JsonPropertyName("noteId")]
+    [MaxLength(128)]
+    [GvmId]
+    public string NoteId { get; set; } = "";
+
+    [Required]
+    [JsonPropertyName("text")]
+    [MaxLength(4096)]
+    public string Text { get; set; } = "";
+
+    [JsonPropertyName("nvtOid")]
+    [MaxLength(128)]
+    [GvmOid]
+    public string? NvtOid { get; set; }
+
+    [JsonPropertyName("resultId")]
+    [MaxLength(128)]
+    [GvmId]
+    public string? ResultId { get; set; }
+
+    [JsonPropertyName("taskId")]
+    [MaxLength(128)]
+    [GvmId]
+    public string? TaskId { get; set; }
+
+    [JsonPropertyName("hosts")]
+    [MaxLength(1024)]
+    public string? Hosts { get; set; }
+
+    [JsonPropertyName("port")]
+    [MaxLength(256)]
+    public string? Port { get; set; }
+
+    [JsonPropertyName("severity")]
+    [Range(0.0, 10.0)]
+    public double? Severity { get; set; }
+
+    [JsonPropertyName("activeDays")]
+    [Range(-1, 3650)]
+    public int? ActiveDays { get; set; }
+}

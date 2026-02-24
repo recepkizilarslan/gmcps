@@ -1,8 +1,3 @@
-using Gmcps.Domain.Configuration;
-using Gmcps.Domain.Models;
-using Gmcps.Infrastructure.Stores;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 
 namespace Gmcps.Tests;
 
