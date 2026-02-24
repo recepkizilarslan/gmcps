@@ -43,10 +43,17 @@ dotnet publish src/Gmcps/Gmcps.csproj -c Release -o publish
 
 ## 4. Local Run
 
-### 4.1 Docker Compose
+### 4.1 Container Smoke Run (GHCR latest)
 
 ```bash
-docker compose up -d --build
+docker pull ghcr.io/recepkizilarslan/gmcps:latest
+docker run --rm \
+  -p 127.0.0.1:8090:8080 \
+  -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
+  -e GVM_USERNAME=admin \
+  -e GVM_PASSWORD=admin \
+  -v /run/gvmd:/run/gvmd \
+  ghcr.io/recepkizilarslan/gmcps:latest
 ```
 
 ### 4.2 Direct dotnet run
@@ -116,6 +123,6 @@ Workflow files:
 Summary:
 
 - `ci`: restore/build/test + Docker build validation
-- `release`: artifact + GitHub Release + GHCR image publish on `v*.*.*`
+- `release`: GitHub Release + GHCR multi-arch Docker image publish on `v*.*.*`
 - `dependency-review`: dependency security gate on PR
 - `codeql`: static security analysis

@@ -11,14 +11,27 @@ Production-grade Model Context Protocol (MCP) server in C# for Greenbone/OpenVAS
 
 ## Prerequisites
 
-- .NET 9 SDK (local development)
-- Docker + Docker Compose (container deployment)
-- Running Greenbone/GVM stack
+- Docker
+- .NET 9 SDK (only for local development)
+- Running Greenbone/GVM stack (local or remote)
 
-## Quick Start (Docker Compose)
+For detailed setup and troubleshooting, see [docs/INSTALLATION.md](docs/INSTALLATION.md).
+
+## Quick Start (Docker Latest)
+
+Image: `ghcr.io/recepkizilarslan/gmcps:latest`
+
+Pull and run:
 
 ```bash
-docker compose up -d --build
+docker pull ghcr.io/recepkizilarslan/gmcps:latest
+docker run -d --name gmcps --restart unless-stopped --pull always \
+  -p 127.0.0.1:8090:8080 \
+  -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
+  -e GVM_USERNAME=admin \
+  -e GVM_PASSWORD=admin \
+  -v /run/gvmd:/run/gvmd \
+  ghcr.io/recepkizilarslan/gmcps:latest
 ```
 
 SSE endpoint check:
@@ -29,7 +42,7 @@ curl -i -N --max-time 3 http://127.0.0.1:8090/sse
 
 Expected response includes an `event: endpoint` with `sessionId`.
 
-## Local Run
+## Local Development Run
 
 ```bash
 dotnet restore
