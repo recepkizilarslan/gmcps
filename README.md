@@ -8,7 +8,6 @@ Production-grade Model Context Protocol (MCP) server in C# for Greenbone/OpenVAS
 - [docs/INSTALLATION.md](docs/INSTALLATION.md)
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 - [docs/TOOLS.md](docs/TOOLS.md)
-- [docs/ARCHITECTURE_REFACTOR_ROADMAP.md](docs/ARCHITECTURE_REFACTOR_ROADMAP.md)
 
 ## Prerequisites
 
