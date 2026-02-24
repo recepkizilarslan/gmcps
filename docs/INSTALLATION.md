@@ -9,11 +9,20 @@ GMCPS is distributed as a Docker image.
 ## 1. Prerequisites
 
 - Docker
-- Greenbone/GVM stack (local or remote)
+- Greenbone Community Containers stack (running)
+
+Official Greenbone sources:
+
+- Docs: <https://greenbone.github.io/docs/latest/22.4/container/index.html>
+- Compose file: <https://greenbone.github.io/docs/latest/_static/docker-compose-22.4.yml>
 
 ## 2. Install and Run (Docker CLI)
 
+Default setup connects GMCPS to the `gvmd` Unix socket volume created by the Greenbone Community Containers compose project (`greenbone-community-edition_gvmd_socket_vol`).
+If your Greenbone compose project name is different, replace the source volume name accordingly.
+
 ```bash
+docker volume ls | grep greenbone-community-edition_gvmd_socket_vol
 docker pull ghcr.io/recepkizilarslan/gmcps:latest
 
 docker run -d --name gmcps --restart unless-stopped --pull always \
@@ -21,8 +30,14 @@ docker run -d --name gmcps --restart unless-stopped --pull always \
   -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
   -e GVM_USERNAME=admin \
   -e GVM_PASSWORD=admin \
-  -v /run/gvmd:/run/gvmd \
+  --mount type=volume,src=greenbone-community-edition_gvmd_socket_vol,dst=/run/gvmd \
   ghcr.io/recepkizilarslan/gmcps:latest
+```
+
+If you exposed gvmd socket to host path (for example `/tmp/gvm/gvmd`), replace mount with:
+
+```bash
+-v /tmp/gvm/gvmd:/run/gvmd
 ```
 
 ## 3. Verify SSE Endpoint
@@ -74,7 +89,7 @@ docker run -d --name gmcps --restart unless-stopped --pull always \
   -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
   -e GVM_USERNAME=admin \
   -e GVM_PASSWORD=admin \
-  -v /run/gvmd:/run/gvmd \
+  --mount type=volume,src=greenbone-community-edition_gvmd_socket_vol,dst=/run/gvmd \
   ghcr.io/recepkizilarslan/gmcps:latest
 ```
 
@@ -88,7 +103,7 @@ docker run -d --name gmcps --restart unless-stopped \
   -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
   -e GVM_USERNAME=admin \
   -e GVM_PASSWORD=admin \
-  -v /run/gvmd:/run/gvmd \
+  --mount type=volume,src=greenbone-community-edition_gvmd_socket_vol,dst=/run/gvmd \
   ghcr.io/recepkizilarslan/gmcps:1.2.3
 ```
 
@@ -103,7 +118,7 @@ Symptom: tool calls fail with `GMP communication error`.
 Check socket:
 
 ```bash
-ls -l /run/gvmd/gvmd.sock
+docker exec gmcps ls -l /run/gvmd/gvmd.sock
 ```
 
 Check logs:
