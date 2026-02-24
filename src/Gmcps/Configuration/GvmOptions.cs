@@ -9,8 +9,8 @@ public sealed class GvmOptions
 
     // Common settings
     public string Username { get; set; } = "admin";
-    
+
     public string Password { get; set; } = "admin";
-   
+
     public int TimeoutSeconds { get; set; } = 30;
 }

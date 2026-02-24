@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using Gmcps.Domain;
 
 namespace Gmcps.Infrastructure.Security;
 
@@ -18,7 +16,16 @@ public static class InputValidator
 
         return Result<T>.Success(input);
     }
-    
+
+    public static void ValidateOrThrow<T>(T input) where T : class
+    {
+        var validation = Validate(input);
+        if (validation.IsFailure)
+        {
+            throw new ValidationException(validation.Error);
+        }
+    }
+
     public static Result<string> ValidateId(string value, string fieldName)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -30,15 +37,12 @@ public static class InputValidator
         {
             return Result<string>.Failure($"{fieldName} exceeds maximum length");
         }
-        
-        if (!IsValidGuid(value) && !value.All(c => char.IsLetterOrDigit(c) || c == '-'))
+
+        if (!value.All(c => char.IsLetterOrDigit(c) || c == '-'))
         {
             return Result<string>.Failure($"{fieldName} contains invalid characters");
         }
 
         return Result<string>.Success(value);
     }
-    
-    private static bool IsValidGuid(string value) =>
-        Guid.TryParse(value, out _);
 }

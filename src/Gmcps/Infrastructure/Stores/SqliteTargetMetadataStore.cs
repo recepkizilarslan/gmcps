@@ -1,17 +1,13 @@
-using Gmcps.Configuration;
-using Gmcps.Domain;
-using Gmcps.Domain.Interfaces;
-using Gmcps.Models;
 using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Gmcps.Infrastructure.Stores;
 
 public sealed class SqliteTargetMetadataStore : ITargetMetadataStore, IDisposable
 {
     private readonly SqliteConnection _connection;
+
     private readonly ILogger<SqliteTargetMetadataStore> _logger;
+
     private bool _initialized;
 
     public SqliteTargetMetadataStore(IOptions<StoreOptions> options, ILogger<SqliteTargetMetadataStore> logger)
@@ -20,6 +16,7 @@ public sealed class SqliteTargetMetadataStore : ITargetMetadataStore, IDisposabl
         var path = options.Value.MetadataPath;
 
         var dir = Path.GetDirectoryName(path);
+
         if (!string.IsNullOrEmpty(dir))
         {
             Directory.CreateDirectory(dir);
@@ -49,6 +46,7 @@ public sealed class SqliteTargetMetadataStore : ITargetMetadataStore, IDisposabl
             """;
         await cmd.ExecuteNonQueryAsync(ct);
         _initialized = true;
+
         _logger.LogInformation("Metadata database schema initialized");
     }
 
@@ -98,10 +96,12 @@ public sealed class SqliteTargetMetadataStore : ITargetMetadataStore, IDisposabl
         await EnsureInitializedAsync(ct);
 
         await using var cmd = _connection.CreateCommand();
+
         cmd.CommandText = "SELECT target_id, os, criticality, tags, compliance_policies FROM target_metadata";
 
         var results = new List<TargetMetadata>();
         await using var reader = await cmd.ExecuteReaderAsync(ct);
+
         while (await reader.ReadAsync(ct))
         {
             results.Add(ReadMetadata(reader));

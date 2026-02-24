@@ -1,4 +1,3 @@
-using Gmcps.Domain;
 
 namespace Gmcps.Tests;
 

@@ -1,8 +1,20 @@
 namespace Gmcps.Domain;
 
-public sealed class Result<T>
+public interface IGmcpsResult
+{
+    bool IsSuccess { get; }
+
+    bool IsFailure { get; }
+
+    object ValueObject { get; }
+
+    string Error { get; }
+}
+
+public sealed class Result<T> : IGmcpsResult
 {
     private readonly T? _value;
+
     private readonly string? _error;
 
     private Result(T value)
@@ -18,6 +30,7 @@ public sealed class Result<T>
     }
 
     public bool IsSuccess { get; }
+
     public bool IsFailure => !IsSuccess;
 
     public T Value => IsSuccess
@@ -28,7 +41,10 @@ public sealed class Result<T>
         ? _error!
         : throw new InvalidOperationException("Cannot access Error on a successful Result.");
 
+    object IGmcpsResult.ValueObject => Value!;
+
     public static Result<T> Success(T value) => new(value);
+
     public static Result<T> Failure(string error) => new(error);
 
     public Result<TOut> Map<TOut>(Func<T, TOut> mapper) =>

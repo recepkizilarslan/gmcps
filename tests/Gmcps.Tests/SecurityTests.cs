@@ -1,8 +1,4 @@
-using Gmcps.Configuration;
-using Gmcps.Infrastructure.Security;
-using Gmcps.Infrastructure.Security.Implementation;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 
 namespace Gmcps.Tests;
 
