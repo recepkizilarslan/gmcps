@@ -16,4 +16,9 @@ public sealed class CreateTargetInput
     [JsonPropertyName("comment")]
     [MaxLength(1024)]
     public string? Comment { get; set; }
+
+    [JsonPropertyName("portListId")]
+    [MaxLength(128)]
+    [GvmId]
+    public string? PortListId { get; set; }
 }

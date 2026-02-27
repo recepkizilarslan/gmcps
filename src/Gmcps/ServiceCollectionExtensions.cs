@@ -85,9 +85,11 @@ using Gmcps.Tools.Configuration.Scanners.ListScanners;
 using Gmcps.Tools.Configuration.Schedules.ListSchedules;
 using Gmcps.Tools.Configuration.Tags.ListTags;
 using Gmcps.Tools.Configuration.Targets.CreateTarget;
+using Gmcps.Tools.Configuration.Targets.DeleteTarget;
 using Gmcps.Tools.Configuration.Targets.ListTargets;
 using Gmcps.Tools.Configuration.Targets.Metadata.GetTargetMetadata;
 using Gmcps.Tools.Configuration.Targets.Metadata.SetTargetMetadata;
+using Gmcps.Tools.Configuration.Users.ListUsers;
 using Gmcps.Tools.Core;
 using Gmcps.Tools.Scans.Tasks.DeleteTask;
 using Gmcps.Tools.Scans.Vulnerabilities.ListCriticalPackages;
@@ -179,9 +181,13 @@ public static class ServiceCollectionExtensions
 
         services.AddTransient<ITool<ListTagsInput, ListTagsOutput>, ListTagsTool>();
 
+        services.AddTransient<ITool<ListUsersInput, ListUsersOutput>, ListUsersTool>();
+
         services.AddTransient<ITool<EmptyInput, ListTargetsOutput>, ListTargetsTool>();
 
         services.AddTransient<ITool<CreateTargetInput, CreateTargetOutput>, CreateTargetTool>();
+
+        services.AddTransient<ITool<DeleteTargetInput, OperationOutput>, DeleteTargetTool>();
 
         services.AddTransient<ITool<SetTargetMetadataInput, SetTargetMetadataOutput>, SetTargetMetadataTool>();
 

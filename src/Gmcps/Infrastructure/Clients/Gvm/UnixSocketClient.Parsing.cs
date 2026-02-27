@@ -215,40 +215,48 @@ public sealed partial class UnixSocketClient
 
     internal static IReadOnlyList<OperatingSystemAsset> ParseOperatingSystemAssets(XDocument doc)
     {
-        return doc.Descendants("asset")
-            .Where(e => e.Attribute("id") is not null)
-            .Select(e =>
+        var assets = new List<OperatingSystemAsset>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var element in doc.Descendants("asset").Where(e => e.Attribute("id") is not null))
+        {
+            var id = element.Attribute("id")!.Value;
+            if (!seen.Add(id))
             {
-                var os = e.Element("os");
+                continue;
+            }
 
-                var averageSeverity = ParseDouble(
-                    os?.Element("average_severity")?.Element("value")?.Value
-                    ?? os?.Element("average_severity")?.Value, 0);
+            var os = element.Element("os");
 
-                var highestSeverity = ParseDouble(
-                    os?.Element("highest_severity")?.Element("value")?.Value
-                    ?? os?.Element("highest_severity")?.Value
-                    ?? os?.Element("latest_severity")?.Element("value")?.Value
-                    ?? os?.Element("latest_severity")?.Value, 0);
+            var averageSeverity = ParseDouble(
+                os?.Element("average_severity")?.Element("value")?.Value
+                ?? os?.Element("average_severity")?.Value, 0);
 
-                var hosts = ParseInt(
-                    os?.Element("hosts")?.Value
-                    ?? os?.Element("installs")?.Value, 0);
+            var highestSeverity = ParseDouble(
+                os?.Element("highest_severity")?.Element("value")?.Value
+                ?? os?.Element("highest_severity")?.Value
+                ?? os?.Element("latest_severity")?.Element("value")?.Value
+                ?? os?.Element("latest_severity")?.Value, 0);
 
-                var allHosts = ParseInt(
-                    os?.Element("all_hosts")?.Value
-                    ?? os?.Element("all_installs")?.Value, hosts);
+            var hosts = ParseInt(
+                os?.Element("hosts")?.Value
+                ?? os?.Element("installs")?.Value, 0);
 
-                return new OperatingSystemAsset(
-                    Id: e.Attribute("id")!.Value,
-                    Name: e.Element("name")?.Value ?? "",
-                    Title: os?.Element("title")?.Value ?? "",
-                    Hosts: hosts,
-                    AllHosts: allHosts,
-                    AverageSeverity: averageSeverity,
-                    HighestSeverity: highestSeverity);
-            })
-            .ToList();
+            var allHosts = ParseInt(
+                os?.Element("all_hosts")?.Value
+                ?? os?.Element("all_installs")?.Value, hosts);
+
+            assets.Add(new OperatingSystemAsset(
+                Id: id,
+                Name: element.Element("name")?.Value ?? "",
+                Title: os?.Element("title")?.Value ?? "",
+                Hosts: hosts,
+                AllHosts: allHosts,
+                AverageSeverity: averageSeverity,
+                HighestSeverity: highestSeverity));
+        }
+
+        return assets;
     }
 
     internal static IReadOnlyList<TlsCertificateAsset> ParseTlsCertificates(XDocument doc)
@@ -271,24 +279,100 @@ public sealed partial class UnixSocketClient
         var normalizedExpectedType = expectedType.ToLowerInvariant();
 
         return doc.Descendants("info")
+            .Where(e => e.Attribute("id") is not null || !string.IsNullOrWhiteSpace(e.Element("name")?.Value))
             .Select(e =>
             {
                 var actualType = ResolveSecurityInfoType(e, normalizedExpectedType);
                 var typeElement = e.Element(actualType);
 
-                var score = ParseNullableDouble(typeElement?.Element("score")?.Value);
+                var id = e.Attribute("id")?.Value ?? e.Element("name")?.Value ?? "";
+                var name = e.Element("name")?.Value ?? "";
+
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    name = id;
+                }
+
+                var score = ParseNullableDouble(
+                    typeElement?.Element("score")?.Value
+                    ?? (actualType == "nvt" ? typeElement?.Element("cvss_base")?.Value : null));
+
                 var summary = typeElement?.Element("summary")?.Value
                     ?? typeElement?.Element("description")?.Value
                     ?? typeElement?.Element("title")?.Value
                     ?? "";
 
                 return new SecurityInfoEntry(
-                    Id: e.Attribute("id")?.Value ?? e.Element("name")?.Value ?? "",
-                    Name: e.Element("name")?.Value ?? "",
+                    Id: id,
+                    Name: name,
                     Type: actualType.ToUpperInvariant(),
                     Score: score,
                     Summary: summary);
             })
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.Id))
+            .ToList();
+    }
+
+    internal static IReadOnlyList<NvtEntry> ParseNvtInfos(XDocument doc)
+    {
+        var results = new List<NvtEntry>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var infoElement in doc.Descendants("info"))
+        {
+            var nvtElement = infoElement.Element("nvt");
+            if (nvtElement is null)
+            {
+                continue;
+            }
+
+            var oid = nvtElement.Attribute("oid")?.Value
+                      ?? infoElement.Attribute("id")?.Value
+                      ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(oid) || !seen.Add(oid))
+            {
+                continue;
+            }
+
+            var name = infoElement.Element("name")?.Value
+                       ?? nvtElement.Element("name")?.Value
+                       ?? oid;
+
+            var family = nvtElement.Element("family")?.Value
+                         ?? infoElement.Element("family")?.Value
+                         ?? "";
+
+            var severity = ParseDouble(
+                nvtElement.Element("severities")?.Attribute("score")?.Value
+                ?? nvtElement.Element("cvss_base")?.Value
+                ?? nvtElement.Element("cvss")?.Value
+                ?? nvtElement.Element("severity")?.Value, 0);
+
+            var summary = nvtElement.Element("summary")?.Value
+                          ?? nvtElement.Element("description")?.Value
+                          ?? nvtElement.Element("title")?.Value
+                          ?? "";
+
+            results.Add(new NvtEntry(
+                Oid: oid,
+                Name: name,
+                Family: family,
+                Severity: severity,
+                Summary: summary));
+        }
+
+        return results;
+    }
+
+    internal static IReadOnlyList<GvmUser> ParseUsers(XDocument doc)
+    {
+        return doc.Descendants("user")
+            .Where(e => e.Attribute("id") is not null)
+            .Select(e => new GvmUser(
+                Id: e.Attribute("id")!.Value,
+                Name: e.Element("name")?.Value ?? ""))
+            .Where(user => !string.IsNullOrWhiteSpace(user.Id) && !string.IsNullOrWhiteSpace(user.Name))
             .ToList();
     }
 
@@ -644,8 +728,11 @@ public sealed partial class UnixSocketClient
     {
         int high = 0, medium = 0, low = 0, log = 0;
 
+        var hadResults = false;
+
         foreach (var result in reportElement.Descendants("result"))
         {
+            hadResults = true;
             var severity = ParseDouble(result.Element("severity")?.Value, 0);
             var threat = result.Element("threat")?.Value?.ToLowerInvariant();
 
@@ -685,12 +772,22 @@ public sealed partial class UnixSocketClient
         }
 
         var countEl = reportElement.Element("result_count");
-        if (countEl is not null && high == 0 && medium == 0 && low == 0)
+        if (!hadResults && countEl is not null && high == 0 && medium == 0 && low == 0 && log == 0)
         {
-            high = ParseInt(countEl.Element("hole")?.Value, 0) +
-                   ParseInt(countEl.Element("warning")?.Value, 0) > 0
-                ? ParseInt(countEl.Element("hole")?.Value, 0)
-                : high;
+            var countsRoot = countEl.Element("filtered") ?? countEl;
+
+            high = ParseInt(countsRoot.Element("hole")?.Value, 0);
+            medium = ParseInt(countsRoot.Element("warning")?.Value, 0);
+            low = ParseInt(countsRoot.Element("info")?.Value, 0);
+            log = ParseInt(countsRoot.Element("log")?.Value, 0);
+
+            if (high == 0 && medium == 0 && low == 0 && log == 0)
+            {
+                high = ParseInt(countsRoot.Element("high")?.Value, 0);
+                medium = ParseInt(countsRoot.Element("medium")?.Value, 0);
+                low = ParseInt(countsRoot.Element("low")?.Value, 0);
+                log = ParseInt(countsRoot.Element("log")?.Value, 0);
+            }
         }
 
         return new ReportSummary(High: high, Medium: medium, Low: low, Log: log);
