@@ -48,7 +48,7 @@ All tools expect arguments under `input`.
   - `name` (string, required, max 256)
   - `targetId` (string, required, max 128)
   - `scanConfigId` (string, required, max 128)
-  - `scannerId` (string, optional, max 128)
+  - `scannerId` (string, optional, max 128; if omitted, the request omits `<scanner>` and gvmd decides)
 - Response: `{ "taskId": "..." }`
 
 ### `gvm_start_task`
@@ -248,6 +248,11 @@ All tools expect arguments under `input`.
   - `limit` (`1..1000`, optional, default `50`)
 - Response: `{ "tags": [ { "id": "...", "name": "...", "value": "...", "comment": "..." } ] }`
 
+### `gvm_list_users`
+- Input:
+  - `limit` (`1..1000`, optional, default `50`)
+- Response: `{ "users": [ { "id": "...", "name": "..." } ] }`
+
 ### `gvm_list_targets`
 - Input: `{}`
 - Response: `{ "targets": [ { "id": "...", "name": "...", "tags": [], "hostsCount": 1, "osHint": "Unknown" } ] }`
@@ -257,7 +262,14 @@ All tools expect arguments under `input`.
   - `name` (string, required, max 256)
   - `hosts` (string, required, max 4096)
   - `comment` (string, optional, max 1024)
+  - `portListId` (string, optional, max 128; if omitted, gvmd default is used)
 - Response: `{ "targetId": "..." }`
+
+### `gvm_delete_target`
+- Input:
+  - `targetId` (string, required)
+  - `ultimate` (bool, optional, default `true`)
+- Response: `{ "ok": true }`
 
 ### `gvm_set_target_metadata`
 - Input:
@@ -325,7 +337,7 @@ All tools expect arguments under `input`.
 ### `gvm_create_remediation_ticket`
 - Input:
   - `resultId` (string, required)
-  - `assignedToUserId` (string, required)
+  - `assignedToUserId` (string, required; accepts **user UUID** or **username**)
   - `openNote` (string, required)
   - `comment` (string, optional)
 - Response: `{ "ticketId": "..." }`

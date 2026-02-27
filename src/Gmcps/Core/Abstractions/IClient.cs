@@ -10,7 +10,9 @@ public interface IClient
 
     Task<Result<IReadOnlyList<Target>>> GetTargetsAsync(CancellationToken ct);
 
-    Task<Result<string>> CreateTargetAsync(string name, string hosts, string? comment, CancellationToken ct);
+    Task<Result<string>> CreateTargetAsync(string name, string hosts, string? comment, string? portListId, CancellationToken ct);
+
+    Task<Result<bool>> DeleteTargetAsync(string targetId, bool ultimate, CancellationToken ct);
 
     Task<Result<IReadOnlyList<GvmTask>>> GetTasksAsync(CancellationToken ct);
 
@@ -18,7 +20,7 @@ public interface IClient
 
     Task<Result<GvmTask>> GetTaskStatusAsync(string taskId, CancellationToken ct);
 
-    Task<Result<string>> CreateTaskAsync(string name, string targetId, string scanConfigId, string scannerId, CancellationToken ct);
+    Task<Result<string>> CreateTaskAsync(string name, string targetId, string scanConfigId, string? scannerId, CancellationToken ct);
 
     Task<Result<string>> StartTaskAsync(string taskId, CancellationToken ct);
 
@@ -121,6 +123,8 @@ public interface IClient
     Task<Result<IReadOnlyList<GvmFilter>>> GetFiltersAsync(int limit, CancellationToken ct);
 
     Task<Result<IReadOnlyList<GvmTag>>> GetTagsAsync(int limit, CancellationToken ct);
+
+    Task<Result<IReadOnlyList<GvmUser>>> GetUsersAsync(int limit, CancellationToken ct);
 
     Task<Result<IReadOnlyList<GvmTicket>>> GetTicketsAsync(int limit, CancellationToken ct);
 

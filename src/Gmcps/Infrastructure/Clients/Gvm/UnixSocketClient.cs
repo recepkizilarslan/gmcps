@@ -60,12 +60,24 @@ public sealed partial class UnixSocketClient(IOptions<GvmOptions> options, ILogg
         return result.Map(ParseTargets);
     }
 
-    public async Task<Result<string>> CreateTargetAsync(string name, string hosts, string? comment, CancellationToken ct)
+    public async Task<Result<string>> CreateTargetAsync(
+        string name,
+        string hosts,
+        string? comment,
+        string? portListId,
+        CancellationToken ct)
     {
+        var resolvedPortListId = string.IsNullOrWhiteSpace(portListId) ? null : portListId.Trim();
+
         var xml = new StringBuilder();
         xml.Append("<create_target>");
         xml.Append($"<name>{EscapeXml(name)}</name>");
         xml.Append($"<hosts>{EscapeXml(hosts)}</hosts>");
+        if (!string.IsNullOrWhiteSpace(resolvedPortListId))
+        {
+            xml.Append($"<port_list id=\"{EscapeXml(resolvedPortListId)}\"/>");
+        }
+
         if (!string.IsNullOrWhiteSpace(comment))
         {
             xml.Append($"<comment>{EscapeXml(comment)}</comment>");
@@ -75,6 +87,13 @@ public sealed partial class UnixSocketClient(IOptions<GvmOptions> options, ILogg
 
         var result = await SendCommandAsync(xml.ToString(), ct);
         return result.Map(doc => doc.Root?.Attribute("id")?.Value ?? string.Empty);
+    }
+
+    public async Task<Result<bool>> DeleteTargetAsync(string targetId, bool ultimate, CancellationToken ct)
+    {
+        var command = $"<delete_target target_id=\"{EscapeXml(targetId)}\" ultimate=\"{ToBoolAttribute(ultimate)}\"/>";
+        var result = await SendCommandAsync(command, ct);
+        return result.Map(_ => true);
     }
 
     public async Task<Result<IReadOnlyList<GvmTask>>> GetTasksAsync(CancellationToken ct)
@@ -111,16 +130,23 @@ public sealed partial class UnixSocketClient(IOptions<GvmOptions> options, ILogg
         string name,
         string targetId,
         string scanConfigId,
-        string scannerId,
+        string? scannerId,
         CancellationToken ct)
     {
-        var xml = $"<create_task><name>{EscapeXml(name)}</name>" +
-                  $"<target id=\"{EscapeXml(targetId)}\"/>" +
-                  $"<config id=\"{EscapeXml(scanConfigId)}\"/>" +
-                  $"<scanner id=\"{EscapeXml(scannerId)}\"/>" +
-                  "<usage_type>scan</usage_type></create_task>";
+        var safeScannerId = string.IsNullOrWhiteSpace(scannerId) ? null : scannerId.Trim();
 
-        var result = await SendCommandAsync(xml, ct);
+        var xml = new StringBuilder("<create_task>");
+        xml.Append($"<name>{EscapeXml(name)}</name>");
+        xml.Append($"<target id=\"{EscapeXml(targetId)}\"/>");
+        xml.Append($"<config id=\"{EscapeXml(scanConfigId)}\"/>");
+        if (!string.IsNullOrWhiteSpace(safeScannerId))
+        {
+            xml.Append($"<scanner id=\"{EscapeXml(safeScannerId)}\"/>");
+        }
+
+        xml.Append("<usage_type>scan</usage_type></create_task>");
+
+        var result = await SendCommandAsync(xml.ToString(), ct);
         return result.Map(doc => doc.Root?.Attribute("id")?.Value ?? string.Empty);
     }
 
@@ -328,10 +354,20 @@ public sealed partial class UnixSocketClient(IOptions<GvmOptions> options, ILogg
     public async Task<Result<IReadOnlyList<NvtEntry>>> GetNvtsAsync(int limit, CancellationToken ct)
     {
         var safeLimit = NormalizeLimit(limit);
-        var command = $"<get_nvts details=\"1\" filter=\"rows={safeLimit}\"/>";
+        try
+        {
+            var infoCommand = $"<get_info type=\"NVT\" filter=\"rows={safeLimit}\"/>";
+            var infoResult = await SendCommandAsync(infoCommand, ct);
+            return infoResult.Map(ParseNvtInfos);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Primary NVT listing via get_info failed; falling back to get_nvts");
+            var command = $"<get_nvts details=\"0\" filter=\"rows={safeLimit}\"/>";
 
-        var result = await SendCommandAsync(command, ct);
-        return result.Map(ParseNvts);
+            var result = await SendCommandAsync(command, ct);
+            return result.Map(ParseNvts);
+        }
     }
 
     public async Task<Result<IReadOnlyList<GvmPortList>>> GetPortListsAsync(int limit, CancellationToken ct)
@@ -415,6 +451,15 @@ public sealed partial class UnixSocketClient(IOptions<GvmOptions> options, ILogg
         return result.Map(ParseTags);
     }
 
+    public async Task<Result<IReadOnlyList<GvmUser>>> GetUsersAsync(int limit, CancellationToken ct)
+    {
+        var safeLimit = NormalizeLimit(limit);
+        var command = $"<get_users filter=\"rows={safeLimit}\"/>";
+
+        var result = await SendCommandAsync(command, ct);
+        return result.Map(ParseUsers);
+    }
+
     public async Task<Result<IReadOnlyList<GvmTicket>>> GetTicketsAsync(int limit, CancellationToken ct)
     {
         var safeLimit = NormalizeLimit(limit);
@@ -431,9 +476,11 @@ public sealed partial class UnixSocketClient(IOptions<GvmOptions> options, ILogg
         string? comment,
         CancellationToken ct)
     {
+        var resolvedUserId = await ResolveUserIdAsync(assignedToUserId, ct);
+
         var xml = new StringBuilder("<create_ticket>");
         xml.Append($"<result id=\"{EscapeXml(resultId)}\"/>");
-        xml.Append($"<assigned_to><user id=\"{EscapeXml(assignedToUserId)}\"/></assigned_to>");
+        xml.Append($"<assigned_to><user id=\"{EscapeXml(resolvedUserId)}\"/></assigned_to>");
         xml.Append($"<open_note>{EscapeXml(openNote)}</open_note>");
         if (!string.IsNullOrWhiteSpace(comment))
         {
@@ -465,7 +512,8 @@ public sealed partial class UnixSocketClient(IOptions<GvmOptions> options, ILogg
         AppendOptionalElement(xml, "closed_note", closedNote);
         if (!string.IsNullOrWhiteSpace(assignedToUserId))
         {
-            xml.Append($"<assigned_to><user id=\"{EscapeXml(assignedToUserId)}\"/></assigned_to>");
+            var resolvedUserId = await ResolveUserIdAsync(assignedToUserId, ct);
+            xml.Append($"<assigned_to><user id=\"{EscapeXml(resolvedUserId)}\"/></assigned_to>");
         }
 
         AppendOptionalElement(xml, "comment", comment);
@@ -490,6 +538,34 @@ public sealed partial class UnixSocketClient(IOptions<GvmOptions> options, ILogg
 
         var result = await SendCommandAsync(command, ct);
         return result.Map(ParseComplianceAuditReports);
+    }
+
+    private async Task<string> ResolveUserIdAsync(string userIdOrName, CancellationToken ct)
+    {
+        var candidate = (userIdOrName ?? string.Empty).Trim();
+        if (Guid.TryParse(candidate, out _))
+        {
+            return candidate;
+        }
+
+        var usersResult = await GetUsersAsync(1000, ct);
+
+        if (usersResult.IsFailure)
+        {
+            throw new InvalidOperationException(usersResult.Error);
+        }
+
+        var match = usersResult.Value.FirstOrDefault(user =>
+            string.Equals(user.Id, candidate, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(user.Name, candidate, StringComparison.OrdinalIgnoreCase));
+
+        if (match is null)
+        {
+            throw new InvalidOperationException(
+                $"User '{candidate}' not found. Provide a valid user UUID or username.");
+        }
+
+        return match.Id;
     }
 
     private async Task EnsureConnectedAsync(CancellationToken ct)
@@ -596,13 +672,13 @@ public sealed partial class UnixSocketClient(IOptions<GvmOptions> options, ILogg
                 continue;
             }
 
-            var content = sb.ToString();
-            if (LooksLikeCompleteXml(content))
-            {
-                return content;
-            }
+        var content = sb.ToString();
+        if (LooksLikeCompleteXml(content))
+        {
+            return content;
         }
     }
+}
 
     private static bool LooksLikeCompleteXml(string content)
     {

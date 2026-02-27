@@ -4,6 +4,7 @@ namespace Gmcps.Toolsets;
 public abstract class ToolsetBase
 {
     private const string GenericError = "Request failed.";
+    private const int MaxErrorLength = 512;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -43,7 +44,7 @@ public abstract class ToolsetBase
         catch (Exception ex)
         {
             logger.LogError(ex, "Tool {ToolName} failed", toolName);
-            return ErrorJson(GenericError);
+            return ErrorJson(ToClientError(ex));
         }
     }
 
@@ -52,4 +53,17 @@ public abstract class ToolsetBase
 
     private static string ErrorJson(string error) =>
         JsonSerializer.Serialize(new { error }, JsonOpts);
+
+    private static string ToClientError(Exception ex)
+    {
+        var message = ex.Message?.ReplaceLineEndings(" ").Trim();
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return GenericError;
+        }
+
+        return message.Length <= MaxErrorLength
+            ? message
+            : message[..MaxErrorLength];
+    }
 }

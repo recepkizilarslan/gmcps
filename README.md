@@ -113,8 +113,10 @@ dotnet run --project src/Gmcps
 - `gvm_list_scanners`
 - `gvm_list_filters`
 - `gvm_list_tags`
+- `gvm_list_users`
 - `gvm_list_targets`
 - `gvm_create_target`
+- `gvm_delete_target`
 - `gvm_set_target_metadata`
 - `gvm_get_target_metadata`
 

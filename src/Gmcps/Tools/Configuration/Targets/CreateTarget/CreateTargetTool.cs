@@ -7,8 +7,7 @@ public sealed class CreateTargetTool(
 {
     public async Task<Result<CreateTargetOutput>> ExecuteAsync(CreateTargetInput input, CancellationToken ct)
     {
-
-        var response = await client.CreateTargetAsync(input.Name, input.Hosts, input.Comment, ct);
+        var response = await client.CreateTargetAsync(input.Name, input.Hosts, input.Comment, input.PortListId, ct);
 
         return response.ToOutput<CreateTargetOutput>();
     }

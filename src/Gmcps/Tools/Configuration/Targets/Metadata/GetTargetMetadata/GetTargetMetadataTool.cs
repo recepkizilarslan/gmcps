@@ -11,6 +11,15 @@ public sealed class GetTargetMetadataTool(
 
         var response = await metadataStore.GetAsync(input.TargetId, ct);
 
+        if (response.IsFailure)
+        {
+            return Result<GetTargetMetadataOutput>.Success(new GetTargetMetadataOutput(
+                TargetId: input.TargetId,
+                Os: OsType.Unknown.ToString(),
+                Criticality: Criticality.Normal.ToString(),
+                Tags: Array.Empty<string>()));
+        }
+
         return response.ToOutput<GetTargetMetadataOutput>();
     }
 }

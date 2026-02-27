@@ -13,8 +13,10 @@ public sealed class ConfigurationToolset(
     ITool<ListScannersInput, ListScannersOutput> listScannersTool,
     ITool<ListFiltersInput, ListFiltersOutput> listFiltersTool,
     ITool<ListTagsInput, ListTagsOutput> listTagsTool,
+    ITool<ListUsersInput, ListUsersOutput> listUsersTool,
     ITool<EmptyInput, ListTargetsOutput> listTargetsTool,
     ITool<CreateTargetInput, CreateTargetOutput> createTargetTool,
+    ITool<DeleteTargetInput, OperationOutput> deleteTargetTool,
     ITool<SetTargetMetadataInput, SetTargetMetadataOutput> setTargetMetadataTool,
     ITool<GetTargetMetadataInput, GetTargetMetadataOutput> getTargetMetadataTool,
     ILogger<ConfigurationToolset> logger)
@@ -60,6 +62,10 @@ public sealed class ConfigurationToolset(
     public Task<string> ListTags(ListTagsInput input, CancellationToken ct) =>
         ExecuteToolAsync("gvm_list_tags", input, ct, logger, listTagsTool);
 
+    [McpServerTool(Name = "gvm_list_users"), Description("List gvmd users")]
+    public Task<string> ListUsers(ListUsersInput input, CancellationToken ct) =>
+        ExecuteToolAsync("gvm_list_users", input, ct, logger, listUsersTool);
+
     [McpServerTool(Name = "gvm_list_targets"), Description("List all scan targets")]
     public Task<string> ListTargets(EmptyInput input, CancellationToken ct) =>
         ExecuteToolAsync("gvm_list_targets", input, ct, logger, listTargetsTool);
@@ -67,6 +73,10 @@ public sealed class ConfigurationToolset(
     [McpServerTool(Name = "gvm_create_target"), Description("Create a new scan target")]
     public Task<string> CreateTarget(CreateTargetInput input, CancellationToken ct) =>
         ExecuteToolAsync("gvm_create_target", input, ct, logger, createTargetTool);
+
+    [McpServerTool(Name = "gvm_delete_target"), Description("Delete a scan target")]
+    public Task<string> DeleteTarget(DeleteTargetInput input, CancellationToken ct) =>
+        ExecuteToolAsync("gvm_delete_target", input, ct, logger, deleteTargetTool);
 
     [McpServerTool(Name = "gvm_set_target_metadata"), Description("Set target metadata (OS, criticality, tags)")]
     public Task<string> SetTargetMetadata(SetTargetMetadataInput input, CancellationToken ct) =>

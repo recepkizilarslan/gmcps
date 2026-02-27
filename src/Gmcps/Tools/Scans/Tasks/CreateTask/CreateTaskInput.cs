@@ -23,5 +23,5 @@ public sealed class CreateTaskInput
     [JsonPropertyName("scannerId")]
     [MaxLength(128)]
     [GvmId]
-    public string ScannerId { get; set; } = "08b69003-5fc2-4037-a479-93b440211c73";
+    public string? ScannerId { get; set; }
 }

@@ -386,6 +386,137 @@ public class GmpXmlParserTests
     }
 
     [Fact]
+    public void ParseSecurityInfos_EmptyInfoElements_AreIgnored()
+    {
+        var xml = XDocument.Parse("""
+            <get_info_response status="200">
+                <info id="CVE-2025-0001">
+                    <name>CVE-2025-0001</name>
+                    <cve>
+                        <score>9.8</score>
+                        <description>Remote code execution</description>
+                    </cve>
+                </info>
+                <info>
+                    <cve>
+                        <score>5.0</score>
+                        <description>Should be ignored</description>
+                    </cve>
+                </info>
+            </get_info_response>
+            """);
+
+        var infos = UnixSocketClient.ParseSecurityInfos(xml, "CVE");
+
+        Assert.Single(infos);
+        Assert.Equal("CVE-2025-0001", infos[0].Id);
+    }
+
+    [Fact]
+    public void ParseReportSummary_UsesResultCount_WhenNoResultsPresent()
+    {
+        var xml = XDocument.Parse("""
+            <get_reports_response status="200">
+                <report id="r1-uuid">
+                    <report id="r1-uuid">
+                        <task id="task1-uuid"/>
+                        <timestamp>2026-02-23T09:15:00Z</timestamp>
+                        <result_count>
+                            <hole>11</hole>
+                            <warning>690</warning>
+                            <info>2</info>
+                            <log>5</log>
+                        </result_count>
+                    </report>
+                </report>
+            </get_reports_response>
+            """);
+
+        var result = UnixSocketClient.ParseReportSummary(xml, "r1-uuid");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(11, result.Value.Summary.High);
+        Assert.Equal(690, result.Value.Summary.Medium);
+        Assert.Equal(2, result.Value.Summary.Low);
+        Assert.Equal(5, result.Value.Summary.Log);
+    }
+
+    [Fact]
+    public void ParseOperatingSystemAssets_DeduplicatesById()
+    {
+        var xml = XDocument.Parse("""
+            <get_assets_response status="200">
+                <asset id="os1">
+                    <name>cpe:/o:linux:kernel</name>
+                    <os>
+                        <title>Linux Kernel</title>
+                        <hosts>4</hosts>
+                    </os>
+                </asset>
+                <asset id="os1">
+                    <name>cpe:/o:linux:kernel</name>
+                    <os>
+                        <title>Linux Kernel</title>
+                        <hosts>4</hosts>
+                    </os>
+                </asset>
+            </get_assets_response>
+            """);
+
+        var assets = UnixSocketClient.ParseOperatingSystemAssets(xml);
+
+        Assert.Single(assets);
+        Assert.Equal("os1", assets[0].Id);
+    }
+
+    [Fact]
+    public void ParseUsers_ValidXml_ReturnsUsers()
+    {
+        var xml = XDocument.Parse("""
+            <get_users_response status="200">
+                <user id="u1">
+                    <name>admin</name>
+                </user>
+                <user id="u2">
+                    <name>scanner</name>
+                </user>
+            </get_users_response>
+            """);
+
+        var users = UnixSocketClient.ParseUsers(xml);
+
+        Assert.Equal(2, users.Count);
+        Assert.Equal("u1", users[0].Id);
+        Assert.Equal("admin", users[0].Name);
+    }
+
+    [Fact]
+    public void ParseNvtInfos_ValidXml_ReturnsNvtEntries()
+    {
+        var xml = XDocument.Parse("""
+            <get_info_response status="200">
+                <info id="1.3.6.1.4.1.25623.1.0.12345">
+                    <name>Example NVT</name>
+                    <nvt oid="1.3.6.1.4.1.25623.1.0.12345">
+                        <family>General</family>
+                        <cvss_base>7.5</cvss_base>
+                        <summary>Example summary</summary>
+                    </nvt>
+                </info>
+            </get_info_response>
+            """);
+
+        var nvts = UnixSocketClient.ParseNvtInfos(xml);
+
+        Assert.Single(nvts);
+        Assert.Equal("1.3.6.1.4.1.25623.1.0.12345", nvts[0].Oid);
+        Assert.Equal("Example NVT", nvts[0].Name);
+        Assert.Equal("General", nvts[0].Family);
+        Assert.Equal(7.5, nvts[0].Severity);
+        Assert.Equal("Example summary", nvts[0].Summary);
+    }
+
+    [Fact]
     public void ParseResults_ValidXml_ReturnsResultItems()
     {
         var xml = XDocument.Parse("""
