@@ -1,25 +1,93 @@
-## .NET
-bin/
-obj/
-*.user
-*.suo
-*.cache
-*.vs/
-
-## Rider
-.idea/
-.claude/
-
-## Data files (keep templates, ignore runtime data)
-data/metadata.db
-data/metadata.db-journal
-
-## Secrets
-.env
-appsettings.Development.json
-
-## OS
+############################
+# OS / Editor junk
+############################
 .DS_Store
 Thumbs.db
+*~
+*.swp
+*.tmp
+*.log
+
+############################
+# IDEs / Tools
+############################
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.VC.opendb
+
+# VS Code
+.vscode/
+
+# JetBrains / Rider
+.idea/
+*.sln.iml
+*.DotSettings.user
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.ReSharper
+
+# AI / local tooling
+.claude/
+
+############################
+# .NET build output
+############################
+[Bb]in/
+[Oo]bj/
+[Aa]rtifacts/
+TestResults/
+
+# dotnet publish output (in case it's outside bin/obj)
+publish/
+**/publish/
+
+############################
+# Coverage reports
+############################
+coverage/
+**/coverage/
+coverage.*
+*.coverage
+*.coveragexml
+*.opencover.xml
+*.cobertura.xml
+*.lcov
+
+############################
+# NuGet / packages
+############################
+packages/
+*.nupkg
+*.snupkg
+
+############################
+# Runtime data / local state
+############################
+data/*.db
+data/*.db-*
+data/*.sqlite
+data/*.sqlite-*
+
+############################
+# Secrets / local config
+############################
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+!.env*.example
+!.env*.sample
+!.env*.template
+
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+
 *.pfx
-/publish
+*.snk
