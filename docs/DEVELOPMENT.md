@@ -45,13 +45,15 @@ dotnet publish src/Gmcps/Gmcps.csproj -c Release -o publish
 
 ### 4.1 Container Smoke Run (GHCR latest)
 
+Replace `<gvmd-username>` and `<gvmd-password>` with your actual gvmd credentials.
+
 ```bash
 docker pull ghcr.io/recepkizilarslan/gmcps:latest
 docker run --rm \
   -p 127.0.0.1:8090:8080 \
   -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
-  -e GVM_USERNAME=admin \
-  -e GVM_PASSWORD=admin \
+  -e GVM_USERNAME=<gvmd-username> \
+  -e GVM_PASSWORD=<gvmd-password> \
   -v /run/gvmd:/run/gvmd \
   ghcr.io/recepkizilarslan/gmcps:latest
 ```
@@ -60,8 +62,8 @@ docker run --rm \
 
 ```bash
 GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
-GVM_USERNAME=admin \
-GVM_PASSWORD=admin \
+GVM_USERNAME=<gvmd-username> \
+GVM_PASSWORD=<gvmd-password> \
 dotnet run --project src/Gmcps --urls http://127.0.0.1:5199
 ```
 
