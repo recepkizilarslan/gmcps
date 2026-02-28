@@ -475,7 +475,7 @@ public class GmpXmlParserTests
         var xml = XDocument.Parse("""
             <get_users_response status="200">
                 <user id="u1">
-                    <name>admin</name>
+                    <name>example-user</name>
                 </user>
                 <user id="u2">
                     <name>scanner</name>
@@ -487,7 +487,7 @@ public class GmpXmlParserTests
 
         Assert.Equal(2, users.Count);
         Assert.Equal("u1", users[0].Id);
-        Assert.Equal("admin", users[0].Name);
+        Assert.Equal("example-user", users[0].Name);
     }
 
     [Fact]
