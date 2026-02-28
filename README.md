@@ -2,7 +2,7 @@
 [![ci](https://github.com/recepkizilarslan/gmcps/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/recepkizilarslan/gmcps/actions/workflows/ci.yml) [![codeql](https://github.com/recepkizilarslan/gmcps/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/recepkizilarslan/gmcps/actions/workflows/codeql.yml) [![Dependabot Updates](https://github.com/recepkizilarslan/gmcps/actions/workflows/dependabot/dependabot-updates/badge.svg?branch=main)](https://github.com/recepkizilarslan/gmcps/actions/workflows/dependabot/dependabot-updates) [![dependency-review](https://github.com/recepkizilarslan/gmcps/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/recepkizilarslan/gmcps/actions/workflows/dependency-review.yml) [![release](https://github.com/recepkizilarslan/gmcps/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/recepkizilarslan/gmcps/actions/workflows/release.yml)
 
 
-Production-grade Model Context Protocol (MCP) server in C# for Greenbone/OpenVAS (GVM).
+Model Context Protocol (MCP) server for Greenbone/OpenVAS (GVM).
 
 - [docs/INSTALLATION.md](docs/INSTALLATION.md)
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
@@ -12,7 +12,7 @@ Production-grade Model Context Protocol (MCP) server in C# for Greenbone/OpenVAS
 
 Use with Greenbone Community Containers (default project name: `greenbone-community-edition`):
 
-Replace `<gvmd-username>` and `********` with your actual gvmd credentials (password is intentionally masked in docs).
+Replace `<gvmd-username>` and `<gvmd-password>` with your actual gvmd credentials (password is intentionally masked in docs).
 
 ```bash
 docker pull ghcr.io/recepkizilarslan/gmcps:latest
@@ -20,7 +20,7 @@ docker run -d --name gmcps --restart unless-stopped --pull always \
   -p 127.0.0.1:8090:8080 \
   -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
   -e GVM_USERNAME=<gvmd-username> \
-  -e GVM_PASSWORD=******** \
+  -e GVM_PASSWORD=<gvmd-password> \
   --mount type=volume,src=greenbone-community-edition_gvmd_socket_vol,dst=/run/gvmd \
   ghcr.io/recepkizilarslan/gmcps:latest
 ```

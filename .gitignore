@@ -2,6 +2,9 @@
 # OS / Editor junk
 ############################
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
 Thumbs.db
 *~
 *.swp
@@ -76,6 +79,8 @@ data/*.sqlite-*
 ############################
 # Secrets / local config
 ############################
+.direnv/
+.envrc
 .env
 .env.*
 !.env.example
@@ -90,4 +95,14 @@ appsettings.Local.json
 appsettings.*.local.json
 
 *.pfx
+*.p12
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.p7b
+*.p7s
+*.jks
+*.keystore
 *.snk
