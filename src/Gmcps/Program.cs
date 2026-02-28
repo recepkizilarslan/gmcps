@@ -18,6 +18,7 @@ var envMappings = new Dictionary<string, string>
     ["GVM_USERNAME"] = "Gvm:Username",
     ["GVM_PASSWORD"] = "Gvm:Password",
     ["GVM_SOCKET_PATH"] = "Gvm:SocketPath",
+    ["GVM_DEFAULT_PORT_LIST_ID"] = "Gvm:DefaultPortListId",
 };
 
 foreach (var (envVar, configKey) in envMappings)

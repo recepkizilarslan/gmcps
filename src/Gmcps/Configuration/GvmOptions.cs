@@ -7,10 +7,13 @@ public sealed class GvmOptions
     // Unix socket settings
     public string SocketPath { get; set; } = "/run/gvmd/gvmd.sock";
 
-    // Common settings
-    public string Username { get; set; } = "admin";
+    // Optional default port list used by gvm_create_target when input.portListId is omitted.
+    public string DefaultPortListId { get; set; } = string.Empty;
 
-    public string Password { get; set; } = "admin";
+    // Common settings
+    public string Username { get; set; } = string.Empty;
+
+    public string Password { get; set; } = string.Empty;
 
     public int TimeoutSeconds { get; set; } = 30;
 }

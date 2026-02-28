@@ -12,13 +12,15 @@ Production-grade Model Context Protocol (MCP) server in C# for Greenbone/OpenVAS
 
 Use with Greenbone Community Containers (default project name: `greenbone-community-edition`):
 
+Replace `<gvmd-username>` and `********` with your actual gvmd credentials (password is intentionally masked in docs).
+
 ```bash
 docker pull ghcr.io/recepkizilarslan/gmcps:latest
 docker run -d --name gmcps --restart unless-stopped --pull always \
   -p 127.0.0.1:8090:8080 \
   -e GVM_SOCKET_PATH=/run/gvmd/gvmd.sock \
-  -e GVM_USERNAME=admin \
-  -e GVM_PASSWORD=admin \
+  -e GVM_USERNAME=<gvmd-username> \
+  -e GVM_PASSWORD=******** \
   --mount type=volume,src=greenbone-community-edition_gvmd_socket_vol,dst=/run/gvmd \
   ghcr.io/recepkizilarslan/gmcps:latest
 ```
