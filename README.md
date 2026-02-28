@@ -4,22 +4,11 @@
 
 Production-grade Model Context Protocol (MCP) server in C# for Greenbone/OpenVAS (GVM).
 
-- [docs/README.md](docs/README.md)
 - [docs/INSTALLATION.md](docs/INSTALLATION.md)
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 - [docs/TOOLS.md](docs/TOOLS.md)
 
-## Prerequisites
-
-- Docker
-- .NET 9 SDK (only for local development)
-- Running Greenbone Community Containers (or equivalent gvmd socket exposure)
-
-For detailed setup and troubleshooting, see [docs/INSTALLATION.md](docs/INSTALLATION.md).
-
-## Quick Start (Docker Latest)
-
-Image: `ghcr.io/recepkizilarslan/gmcps:latest`
+## Quick Start
 
 Use with Greenbone Community Containers (default project name: `greenbone-community-edition`):
 
@@ -33,44 +22,6 @@ docker run -d --name gmcps --restart unless-stopped --pull always \
   --mount type=volume,src=greenbone-community-edition_gvmd_socket_vol,dst=/run/gvmd \
   ghcr.io/recepkizilarslan/gmcps:latest
 ```
-
-SSE endpoint check:
-
-```bash
-curl -i -N --max-time 3 http://127.0.0.1:8090/sse
-```
-
-Expected response includes an `event: endpoint` with `sessionId`.
-
-## Local Development Run
-
-```bash
-dotnet restore
-dotnet build
-dotnet run --project src/Gmcps
-```
-
-## MCP Client Config (SSE)
-
-```json
-{
-  "mcpServers": {
-    "openvas": {
-      "type": "sse",
-      "url": "http://127.0.0.1:8090/sse"
-    }
-  }
-}
-```
-
-## Environment Variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `GVM_SOCKET_PATH` | `/run/gvmd/gvmd.sock` | gvmd Unix socket path |
-| `GVM_USERNAME` | `admin` | gvmd username |
-| `GVM_PASSWORD` | `admin` | gvmd password |
-| `ASPNETCORE_URLS` | `http://+:8080` | HTTP bind address |
 
 ## Toolsets and Tools
 
@@ -162,35 +113,6 @@ Quick overview. Full tool contracts (inputs/outputs) are in `docs/TOOLS.md`.
 | `gvm_list_compliance_audit_reports` | Lists compliance audit reports with pass/fail/incomplete summaries. |
 | `gvm_is_target_compliant` | Evaluates whether a target is compliant with a given policy. |
 
-## Example Tool Calls
-
-```json
-{
-  "tool": "gvm_list_host_assets",
-  "arguments": {
-    "limit": 25
-  }
-}
-```
-
-```json
-{
-  "tool": "gvm_list_cves",
-  "arguments": {
-    "limit": 50
-  }
-}
-```
-
-```json
-{
-  "tool": "gvm_is_target_compliant",
-  "arguments": {
-    "targetId": "target-uuid-here",
-    "policyId": "no-critical-vulns"
-  }
-}
-```
 
 ## Security Notes
 
@@ -198,9 +120,3 @@ Quick overview. Full tool contracts (inputs/outputs) are in `docs/TOOLS.md`.
 - Shared rate limiting for tool execution.
 - No raw GMP passthrough.
 - GMP communication over Unix socket.
-
-## Tests
-
-```bash
-dotnet test
-```
